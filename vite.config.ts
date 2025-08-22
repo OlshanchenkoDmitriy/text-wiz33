@@ -17,8 +17,14 @@ export default defineConfig(async ({ mode }) => {
 
   return {
     server: {
-      host: "::",
+      // Делаем сервер доступным по LAN (эквивалентно --host)
+      host: true,
       port: 8080,
+      strictPort: true,
+      hmr: {
+        // HMR-клиент использует тот же порт; помогает при доступе по сети
+        clientPort: 8080,
+      },
     },
     plugins,
     resolve: {

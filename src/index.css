@@ -119,3 +119,11 @@ All colors MUST be HSL.
     @apply bg-background text-foreground;
   }
 }
+
+/* Утилита для корректной высоты экрана на мобильных (устраняет скачки адресной строки) */
+@layer utilities {
+  .min-h-dvh { min-height: 100vh; }
+  @supports (min-height: 100dvh) {
+    .min-h-dvh { min-height: 100dvh; }
+  }
+}

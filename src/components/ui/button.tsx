@@ -5,7 +5,7 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "@/lib/utils"
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 active:scale-95 transition-transform",
   {
     variants: {
       variant: {
@@ -22,8 +22,10 @@ const buttonVariants = cva(
       size: {
         default: "h-10 px-4 py-2",
         sm: "h-9 rounded-md px-3",
-        lg: "h-11 rounded-md px-8",
-        icon: "h-10 w-10",
+        lg: "h-12 rounded-md px-6 text-base min-w-[48px] md:h-11", // 48px тач-таргет на мобильных
+        icon: "h-10 w-10 md:h-9 md:w-9",
+        "icon-lg": "h-12 w-12 min-w-[48px] min-h-[48px]", // Большие иконочные кнопки для мобильных
+        "mobile": "h-12 px-4 py-3 text-base min-w-[48px] min-h-[48px] md:h-10 md:px-4 md:py-2 md:text-sm", // Адаптивный размер
       },
     },
     defaultVariants: {

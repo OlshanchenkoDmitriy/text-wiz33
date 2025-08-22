@@ -27,8 +27,8 @@ const AppContent = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col pb-[calc(112px+env(safe-area-inset-bottom))]">
-      <main className="flex-1 p-4 md:p-6 max-w-7xl mx-auto w-full">
+    <div className="min-h-dvh bg-background flex flex-col pb-[calc(60px+env(safe-area-inset-bottom)+env(safe-area-inset-bottom))]">
+      <main className="flex-1 p-4 md:p-6 max-w-7xl mx-auto w-full overflow-x-hidden">
         {renderContent()}
       </main>
       <Navigation activeTab={activeTab} onTabChange={setActiveTab} />

@@ -272,11 +272,24 @@ src/
    ```
 
 3. **Соберите для Android**:
+   
+   **Вариант A: С Android Studio (GUI)**
    ```bash
    npm run build
-   npx cap copy android
+   npx cap sync android
    npx cap open android
    ```
+   Подробности: [BUILD_APK.md](BUILD_APK.md)
+   
+   **Вариант B: Только командная строка (без Android Studio)**
+   ```bash
+   npm run build
+   npx cap sync android
+   cd android
+   .\gradlew.bat assembleDebug  # Windows
+   ./gradlew assembleDebug      # Linux/Mac
+   ```
+   Подробности: [ANDROID_CLI.md](ANDROID_CLI.md)
 
 ## 📝 Лицензия
 

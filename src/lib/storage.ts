@@ -5,6 +5,10 @@ export interface Note {
   id: string;
   title: string;
   content: string;
+  tags: string[];
+  category: string;
+  color: string;
+  isPinned: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -31,8 +35,69 @@ const STORAGE_KEYS = {
   NOTES: 'linguascribe_notes',
   HISTORY: 'linguascribe_history',
   SONGS: 'linguascribe_songs',
-  SETTINGS: 'linguascribe_settings'
+  SETTINGS: 'linguascribe_settings',
+  NOTE_TEMPLATES: 'linguascribe_note_templates'
 } as const;
+
+export interface NoteTemplate {
+  id: string;
+  name: string;
+  description: string;
+  content: string;
+  category: string;
+  tags: string[];
+}
+
+export const noteTemplatesAPI = {
+  getAll: (): NoteTemplate[] => {
+    return getFromStorage<NoteTemplate[]>(STORAGE_KEYS.NOTE_TEMPLATES, [
+      {
+        id: '1',
+        name: 'Встреча',
+        description: 'Шаблон для записи встреч',
+        content: '# Встреча\n\n**Дата:** \n**Участники:** \n**Цель:** \n\n## Повестка дня\n- \n\n## Обсуждение\n\n## Решения\n\n## Следующие шаги\n- [ ] ',
+        category: 'Работа',
+        tags: ['встреча', 'работа']
+      },
+      {
+        id: '2',
+        name: 'Идея',
+        description: 'Шаблон для записи идей',
+        content: '# Идея\n\n**Описание:** \n\n**Проблема:** \n\n**Решение:** \n\n**Преимущества:** \n- \n\n**Недостатки:** \n- \n\n**Следующие шаги:** \n- [ ] ',
+        category: 'Идеи',
+        tags: ['идея', 'творчество']
+      },
+      {
+        id: '3',
+        name: 'Задача',
+        description: 'Шаблон для постановки задач',
+        content: '# Задача\n\n**Описание:** \n\n**Приоритет:** \n\n**Дедлайн:** \n\n**Ресурсы:** \n- \n\n**Подзадачи:** \n- [ ] \n- [ ] \n- [ ] \n\n**Заметки:** ',
+        category: 'Задачи',
+        tags: ['задача', 'планирование']
+      }
+    ]);
+  },
+
+  create: (template: Omit<NoteTemplate, 'id'>): NoteTemplate => {
+    const templates = noteTemplatesAPI.getAll();
+    const newTemplate: NoteTemplate = {
+      ...template,
+      id: Date.now().toString()
+    };
+    templates.push(newTemplate);
+    saveToStorage(STORAGE_KEYS.NOTE_TEMPLATES, templates);
+    return newTemplate;
+  },
+
+  delete: (id: string): boolean => {
+    const templates = noteTemplatesAPI.getAll();
+    const filteredTemplates = templates.filter(template => template.id !== id);
+    if (filteredTemplates.length === templates.length) return false;
+    
+    saveToStorage(STORAGE_KEYS.NOTE_TEMPLATES, filteredTemplates);
+    return true;
+  }
+};
 
 // Утилиты для работы с датами
 const serializeDate = (date: Date): string => date.toISOString();
@@ -73,6 +138,10 @@ export const notesAPI = {
     const newNote: Note = {
       ...note,
       id: Date.now().toString(),
+      tags: note.tags || [],
+      category: note.category || 'Общие',
+      color: note.color || '#3b82f6',
+      isPinned: note.isPinned || false,
       createdAt: new Date(),
       updatedAt: new Date()
     };
@@ -109,8 +178,37 @@ export const notesAPI = {
     const lowerQuery = query.toLowerCase();
     return notes.filter(note => 
       note.title.toLowerCase().includes(lowerQuery) ||
-      note.content.toLowerCase().includes(lowerQuery)
+      note.content.toLowerCase().includes(lowerQuery) ||
+      note.tags.some(tag => tag.toLowerCase().includes(lowerQuery)) ||
+      note.category.toLowerCase().includes(lowerQuery)
     );
+  },
+
+  getByCategory: (category: string): Note[] => {
+    const notes = notesAPI.getAll();
+    return notes.filter(note => note.category === category);
+  },
+
+  getByTag: (tag: string): Note[] => {
+    const notes = notesAPI.getAll();
+    return notes.filter(note => note.tags.includes(tag));
+  },
+
+  getAllCategories: (): string[] => {
+    const notes = notesAPI.getAll();
+    const categories = new Set(notes.map(note => note.category));
+    return Array.from(categories).sort();
+  },
+
+  getAllTags: (): string[] => {
+    const notes = notesAPI.getAll();
+    const tags = new Set(notes.flatMap(note => note.tags));
+    return Array.from(tags).sort();
+  },
+
+  getPinned: (): Note[] => {
+    const notes = notesAPI.getAll();
+    return notes.filter(note => note.isPinned);
   }
 };
 

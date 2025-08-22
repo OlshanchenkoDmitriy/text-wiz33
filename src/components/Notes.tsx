@@ -1,25 +1,49 @@
-import { useState, useRef, useEffect } from "react";
-import { Button } from "@/components/ui/button";
+import { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useToast } from "@/hooks/use-toast";
+import { useMobileOptimization } from "@/hooks/use-mobile-optimization";
+import { useAppContext } from "@/hooks/use-app-context";
+import { notesAPI, noteTemplatesAPI, type Note, type NoteTemplate } from "@/lib/storage";
 import {
   StickyNote,
   Plus,
   Search,
-  Trash2,
+  Edit,
   Edit3,
+  Trash2,
   Save,
-  Copy,
-  Undo,
-  Redo,
-  Type,
+  X,
   Download,
   Upload,
+  Tag,
+  Folder,
+  Pin,
+  PinOff,
+  Palette,
+  Filter,
+  Star,
+  ArrowRight,
+  FileText,
+  Music,
+  Redo,
+  Copy,
+  Type
 } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
-import { notesAPI, type Note } from "@/lib/storage";
+
+const noteColors = [
+  { name: 'Синий', value: '#3b82f6' },
+  { name: 'Зеленый', value: '#10b981' },
+  { name: 'Красный', value: '#ef4444' },
+  { name: 'Желтый', value: '#f59e0b' },
+  { name: 'Фиолетовый', value: '#8b5cf6' },
+  { name: 'Розовый', value: '#ec4899' },
+  { name: 'Серый', value: '#6b7280' }
+];
 
 export const Notes = () => {
   const [notes, setNotes] = useState<Note[]>([]);
@@ -27,42 +51,98 @@ export const Notes = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [editTitle, setEditTitle] = useState("");
   const [editContent, setEditContent] = useState("");
+  const [editTags, setEditTags] = useState<string[]>([]);
+  const [editCategory, setEditCategory] = useState("");
+  const [editColor, setEditColor] = useState("#3b82f6");
   const [searchTerm, setSearchTerm] = useState("");
-  const [fontSize, setFontSize] = useState(14);
-  const [history, setHistory] = useState<string[]>([]);
-  const [historyIndex, setHistoryIndex] = useState(-1);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const [categoryFilter, setCategoryFilter] = useState("");
+  const [tagFilter, setTagFilter] = useState("");
+  const [showPinnedOnly, setShowPinnedOnly] = useState(false);
+  const [showTemplates, setShowTemplates] = useState(false);
+  const [newTagInput, setNewTagInput] = useState("");
+  const [templates, setTemplates] = useState<NoteTemplate[]>([]);
+  const [fontSize, setFontSize] = useState<number>(16);
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const { toast } = useToast();
+  const { sharedData, clearSharedData, transferToEditor, transferToSuno } = useAppContext();
 
-  // Загружаем заметки при монтировании компонента
+  // Mobile UI tuning
+  const { isMobile } = useMobileOptimization();
+  const buttonSize = isMobile ? "lg" : "sm";
+  const iconSizeCls = isMobile ? "w-5 h-5" : "w-4 h-4";
+  const listMaxH = isMobile ? "max-h-[calc(100vh-18rem)]" : "max-h-[calc(100vh-16rem)]";
+  const editorMinH = isMobile ? "min-h-[300px]" : "min-h-[400px]";
+
   useEffect(() => {
-    const loadNotes = () => {
-      const allNotes = notesAPI.getAll();
-      setNotes(allNotes);
-      if (allNotes.length > 0 && !selectedNote) {
-        setSelectedNote(allNotes[0]);
-      }
-    };
     loadNotes();
-  }, [selectedNote]);
+  }, []);
 
-  const filteredNotes = notes.filter(
-    (note) =>
-      note.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      note.content.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  useEffect(() => {
+    if (sharedData && sharedData.source !== 'notes') {
+      const newNote = {
+        title: sharedData.metadata?.title || `Из ${sharedData.source === 'editor' ? 'редактора' : sharedData.source === 'history' ? 'истории' : 'Suno Editor'}`,
+        content: sharedData.text,
+        tags: sharedData.metadata?.tags || [],
+        category: sharedData.metadata?.category || 'Общие',
+        color: '#3b82f6',
+        isPinned: false
+      };
+      
+      const createdNote = notesAPI.create(newNote);
+      loadNotes();
+      setSelectedNote(createdNote);
+      
+      toast({
+        title: "Заметка создана",
+        description: `Текст перенесен из ${sharedData.source === 'editor' ? 'редактора' : sharedData.source === 'history' ? 'истории' : 'Suno Editor'}`
+      });
+      clearSharedData();
+    }
+  }, [sharedData, clearSharedData, toast]);
 
-  const createNewNote = () => {
+  const loadNotes = () => {
+    const allNotes = notesAPI.getAll();
+    const allTemplates = noteTemplatesAPI.getAll();
+    setNotes(allNotes);
+    setTemplates(allTemplates);
+    if (allNotes.length > 0 && !selectedNote) {
+      setSelectedNote(allNotes[0]);
+    }
+  };
+
+  const filteredNotes = notes.filter((note) => {
+    const matchesSearch = note.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         note.content.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         note.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()));
+    
+    const matchesCategory = categoryFilter === '' || note.category === categoryFilter;
+    const matchesTag = tagFilter === '' || note.tags.includes(tagFilter);
+    const matchesPinned = !showPinnedOnly || note.isPinned;
+    
+    return matchesSearch && matchesCategory && matchesTag && matchesPinned;
+  });
+
+  const createNewNote = (template?: NoteTemplate) => {
     const newNote = notesAPI.create({
-      title: "Новая заметка",
-      content: "",
+      title: template?.name || "Новая заметка",
+      content: template?.content || "",
+      tags: template?.tags || [],
+      category: template?.category || "Общие",
+      color: "#3b82f6",
+      isPinned: false
     });
     setNotes([newNote, ...notes]);
     setSelectedNote(newNote);
     setIsEditing(true);
     setEditTitle(newNote.title);
     setEditContent(newNote.content);
-    toast({ title: "Создано", description: "Новая заметка создана" });
+    setEditTags(newNote.tags);
+    setEditCategory(newNote.category);
+    setEditColor(newNote.color);
+    toast({ 
+      title: "Создано", 
+      description: template ? `Заметка создана из шаблона "${template.name}"` : "Новая заметка создана" 
+    });
   };
 
   const startEditing = () => {
@@ -70,8 +150,9 @@ export const Notes = () => {
     setIsEditing(true);
     setEditTitle(selectedNote.title);
     setEditContent(selectedNote.content);
-    setHistory([selectedNote.content]);
-    setHistoryIndex(0);
+    setEditTags([...selectedNote.tags]);
+    setEditCategory(selectedNote.category);
+    setEditColor(selectedNote.color);
   };
 
   const saveNote = () => {
@@ -80,6 +161,9 @@ export const Notes = () => {
     const updatedNote = notesAPI.update(selectedNote.id, {
       title: editTitle || "Без названия",
       content: editContent,
+      tags: editTags,
+      category: editCategory,
+      color: editColor
     });
 
     if (updatedNote) {
@@ -103,32 +187,8 @@ export const Notes = () => {
     }
   };
 
-  const addToHistory = (content: string) => {
-    const newHistory = history.slice(0, historyIndex + 1);
-    newHistory.push(content);
-    setHistory(newHistory);
-    setHistoryIndex(newHistory.length - 1);
-  };
-
   const handleContentChange = (content: string) => {
     setEditContent(content);
-    if (content !== history[historyIndex]) {
-      addToHistory(content);
-    }
-  };
-
-  const undo = () => {
-    if (historyIndex > 0) {
-      setHistoryIndex(historyIndex - 1);
-      setEditContent(history[historyIndex - 1]);
-    }
-  };
-
-  const redo = () => {
-    if (historyIndex < history.length - 1) {
-      setHistoryIndex(historyIndex + 1);
-      setEditContent(history[historyIndex + 1]);
-    }
   };
 
   const copyToClipboard = () => {
@@ -142,10 +202,46 @@ export const Notes = () => {
 
   const clearContent = () => {
     setEditContent("");
-    addToHistory("");
   };
 
+  const togglePin = (noteId: string) => {
+    const note = notes.find(n => n.id === noteId);
+    if (!note) return;
+    
+    const updatedNote = notesAPI.update(noteId, { isPinned: !note.isPinned });
+    if (updatedNote) {
+      setNotes(notes.map(n => n.id === noteId ? updatedNote : n));
+      if (selectedNote?.id === noteId) {
+        setSelectedNote(updatedNote);
+      }
+      toast({ 
+        title: updatedNote.isPinned ? "Закреплено" : "Откреплено", 
+        description: `Заметка ${updatedNote.isPinned ? 'закреплена' : 'откреплена'}` 
+      });
+    }
+  };
 
+  const addTag = () => {
+    if (!newTagInput.trim() || editTags.includes(newTagInput.trim())) return;
+    setEditTags([...editTags, newTagInput.trim()]);
+    setNewTagInput("");
+  };
+
+  const removeTag = (tagToRemove: string) => {
+    setEditTags(editTags.filter(tag => tag !== tagToRemove));
+  };
+
+  const getAllCategories = () => {
+    const categories = notesAPI.getAllCategories();
+    const unique = Array.from(new Set(categories.filter((c) => typeof c === 'string' && c.trim().length > 0)));
+    return ['all', ...unique];
+  };
+
+  const getAllTags = () => {
+    const tags = notesAPI.getAllTags();
+    const unique = Array.from(new Set(tags.filter((t) => typeof t === 'string' && t.trim().length > 0)));
+    return ['all', ...unique];
+  };
 
   const exportNotes = () => {
     const dataStr = JSON.stringify(notes, null, 2);
@@ -177,6 +273,10 @@ export const Notes = () => {
             notesAPI.create({
               title: note.title || "Импортированная заметка",
               content: note.content || "",
+              tags: Array.isArray(note.tags) ? note.tags : [],
+              category: typeof note.category === 'string' && note.category.trim() ? note.category : 'Общие',
+              color: typeof note.color === 'string' && note.color.trim() ? note.color : '#3b82f6',
+              isPinned: Boolean(note.isPinned),
             });
           });
 
@@ -206,29 +306,37 @@ export const Notes = () => {
   };
 
   return (
-    <div className="grid lg:grid-cols-3 gap-6 h-[calc(100vh-8rem)]">
+    <div className="grid lg:grid-cols-3 gap-4 lg:gap-6 lg:h-[calc(100vh-8rem)]">
       {/* Боковая панель с заметками */}
       <div className="lg:col-span-1 space-y-4">
         <Card className="bg-gradient-secondary border-border">
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
-                <StickyNote className="w-5 h-5 text-primary" />
+                <StickyNote className={`${iconSizeCls} text-primary`} />
                 <span>Заметки</span>
               </div>
-              <div className="flex items-center space-x-1">
+              <div className="flex items-center space-x-1 overflow-x-auto scrollbar-hide flex-nowrap -mx-1 px-1">
                 <Button
-                  size="sm"
+                  size={buttonSize}
+                  variant="outline"
+                  onClick={() => setShowTemplates(!showTemplates)}
+                  title="Шаблоны"
+                >
+                  <FileText className={iconSizeCls} />
+                </Button>
+                <Button
+                  size={buttonSize}
                   variant="outline"
                   onClick={exportNotes}
                   title="Экспорт"
                 >
-                  <Download className="w-4 h-4" />
+                  <Download className={iconSizeCls} />
                 </Button>
                 <label htmlFor="import-notes" className="cursor-pointer">
-                  <Button size="sm" variant="outline" asChild title="Импорт">
+                  <Button size={buttonSize} variant="outline" asChild title="Импорт">
                     <span>
-                      <Upload className="w-4 h-4" />
+                      <Upload className={iconSizeCls} />
                     </span>
                   </Button>
                 </label>
@@ -239,26 +347,91 @@ export const Notes = () => {
                   onChange={importNotes}
                   className="hidden"
                 />
-                <Button size="sm" onClick={createNewNote}>
-                  <Plus className="w-4 h-4" />
+                <Button size={buttonSize} onClick={() => createNewNote()}>
+                  <Plus className={iconSizeCls} />
                 </Button>
               </div>
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            <div className="relative">
-              <Search className="w-4 h-4 absolute left-3 top-3 text-muted-foreground" />
-              <Input
-                placeholder="Поиск заметок..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 bg-background/50"
-              />
+            <div className="space-y-3">
+              <div className="relative">
+                <Search className={`absolute left-3 top-3 text-muted-foreground ${iconSizeCls}`} />
+                <Input
+                  placeholder="Поиск заметок..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10 bg-background/50"
+                />
+              </div>
+              
+              {/* Фильтры */}
+              <div className="flex flex-wrap gap-2">
+                <Select value={categoryFilter} onValueChange={(v) => setCategoryFilter(v)}>
+                  <SelectTrigger className="text-xs bg-background border border-border rounded px-2 py-1 min-w-[10rem]">
+                    <SelectValue placeholder="Категория" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {getAllCategories().map((category, idx) => (
+                      <SelectItem key={`cat-${idx}-${category}`} value={category}>
+                        {category === 'all' ? 'Все категории' : category}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                
+                <Select value={tagFilter} onValueChange={(v) => setTagFilter(v)}>
+                  <SelectTrigger className="text-xs bg-background border border-border rounded px-2 py-1 min-w-[10rem]">
+                    <SelectValue placeholder="Тег" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {getAllTags().map((tag, idx) => (
+                      <SelectItem key={`tag-${idx}-${tag}`} value={tag}>
+                        {tag === 'all' ? 'Все теги' : tag}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                
+                <Button
+                  size={buttonSize}
+                  variant={showPinnedOnly ? 'default' : 'outline'}
+                  onClick={() => setShowPinnedOnly(!showPinnedOnly)}
+                  className="text-xs"
+                >
+                  <Pin className={`mr-1 ${iconSizeCls}`} />
+                  Закрепленные
+                </Button>
+              </div>
+              
+              {/* Шаблоны */}
+              {showTemplates && (
+                <div className="space-y-2">
+                  <div className="text-sm font-medium">Шаблоны:</div>
+                  <div className="grid grid-cols-1 gap-2">
+                    {templates.map(template => (
+                      <Button
+                        key={template.id}
+                        variant="outline"
+                        size={buttonSize}
+                        onClick={() => {
+                          createNewNote(template);
+                          setShowTemplates(false);
+                        }}
+                        className="text-xs justify-start"
+                      >
+                        <FileText className={`${iconSizeCls} mr-2`} />
+                        {template.name}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
 
-        <div className="space-y-2 max-h-[calc(100vh-16rem)] overflow-y-auto">
+        <div className={`space-y-2 ${listMaxH} overflow-y-auto`}>
           {filteredNotes.map((note) => (
             <Card
               key={note.id}
@@ -279,14 +452,14 @@ export const Notes = () => {
                   </h3>
                   <Button
                     variant="ghost"
-                    size="sm"
+                    size={buttonSize}
                     onClick={(e) => {
                       e.stopPropagation();
                       deleteNote(note.id);
                     }}
-                    className="h-6 w-6 p-0"
+                    className="h-8 w-8 p-0"
                   >
-                    <Trash2 className="w-3 h-3" />
+                    <Trash2 className={iconSizeCls} />
                   </Button>
                 </div>
                 <p className="text-xs text-muted-foreground line-clamp-2 mb-2">
@@ -322,24 +495,24 @@ export const Notes = () => {
                   )}
                 </div>
 
-                <div className="flex items-center space-x-2">
+                <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide flex-nowrap">
                   {isEditing ? (
                     <>
                       <Button
                         variant="outline"
-                        size="sm"
+                        size={buttonSize}
                         onClick={() => setIsEditing(false)}
                       >
                         Отмена
                       </Button>
-                      <Button size="sm" onClick={saveNote}>
-                        <Save className="w-4 h-4 mr-1" />
+                      <Button size={buttonSize} onClick={saveNote}>
+                        <Save className={`${iconSizeCls} mr-1`} />
                         Сохранить
                       </Button>
                     </>
                   ) : (
-                    <Button size="sm" onClick={startEditing}>
-                      <Edit3 className="w-4 h-4 mr-1" />
+                    <Button size={buttonSize} onClick={startEditing}>
+                      <Edit3 className={`${iconSizeCls} mr-1`} />
                       Редактировать
                     </Button>
                   )}
@@ -352,63 +525,33 @@ export const Notes = () => {
                 </div>
               )}
             </CardHeader>
-
-            <CardContent className="space-y-4 h-full">
-              {isEditing && (
-                <div className="flex flex-wrap gap-2 pb-2 border-b border-border">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={undo}
-                    disabled={historyIndex <= 0}
-                  >
-                    <Undo className="w-4 h-4" />
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={redo}
-                    disabled={historyIndex >= history.length - 1}
-                  >
-                    <Redo className="w-4 h-4" />
-                  </Button>
-                  <Button variant="outline" size="sm" onClick={copyToClipboard}>
-                    <Copy className="w-4 h-4" />
-                  </Button>
-                  <Button variant="outline" size="sm" onClick={clearContent}>
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-
-
-                  <div className="flex items-center space-x-2 ml-auto">
-                    <Type className="w-4 h-4" />
-                    <select
-                      value={fontSize}
-                      onChange={(e) => setFontSize(Number(e.target.value))}
-                      className="text-sm bg-background border border-border rounded px-2 py-1"
-                    >
-                      <option value={12}>12px</option>
-                      <option value={14}>14px</option>
-                      <option value={16}>16px</option>
-                      <option value={18}>18px</option>
-                      <option value={20}>20px</option>
-                    </select>
-                  </div>
-                </div>
-              )}
-
+            <CardContent>
+              <div className={`flex items-center space-x-2 ml-auto ${isMobile ? 'flex-nowrap overflow-x-auto' : ''}`}>
+                <Type className={iconSizeCls} />
+                <select
+                  value={fontSize}
+                  onChange={(e) => setFontSize(Number(e.target.value))}
+                  className="text-sm bg-background border border-border rounded px-2 py-1"
+                >
+                  <option value={12}>12px</option>
+                  <option value={14}>14px</option>
+                  <option value={16}>16px</option>
+                  <option value={18}>18px</option>
+                  <option value={20}>20px</option>
+                </select>
+              </div>
               {isEditing ? (
                 <Textarea
                   ref={textareaRef}
                   value={editContent}
                   onChange={(e) => handleContentChange(e.target.value)}
                   placeholder="Начните вводить текст заметки..."
-                  className="min-h-[400px] bg-background/50 border-border resize-none"
+                  className={`${editorMinH} bg-background/50 border-border resize-none`}
                   style={{ fontSize: `${fontSize}px` }}
                 />
               ) : (
                 <div
-                  className="min-h-[400px] p-4 bg-background/30 rounded-md border border-border whitespace-pre-wrap"
+                  className={`${editorMinH} p-4 bg-background/30 rounded-md border border-border whitespace-pre-wrap`}
                   style={{ fontSize: `${fontSize}px` }}
                 >
                   {selectedNote.content || (

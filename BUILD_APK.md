@@ -81,7 +81,7 @@ keytool -genkey -v -keystore my-release-key.keystore -alias alias_name -keyalg R
 - [ ] Все иконки на месте
 - [ ] Разрешения в AndroidManifest.xml
 - [ ] Версия приложения в build.gradle
-- [ ] Название приложения в strings.xml
+- [ ] Название приложения в strings.xml (Text Wizard)
 - [ ] Capacitor синхронизирован (`npx cap sync android`)
 
 ### ✅ Тестирование:
@@ -142,4 +142,4 @@ adb install app-debug.apk
 
 ---
 
-**📱 Создано для LinguaScribe - Универсальный редактор текстов и песен** 
+**📱 Создано для Text Wizard — персональный офлайн‑редактор текста**

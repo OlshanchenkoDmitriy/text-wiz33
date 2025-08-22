@@ -24,6 +24,7 @@ import {
   Zap,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useMobileOptimization } from "@/hooks/use-mobile-optimization";
 
 interface SunoTag {
   type: "section" | "style" | "effect" | "vocal" | "texture" | "pitch" | "timing" | "dynamics" | "progression" | "element" | "atmosphere" | "instrument" | "quality" | "genre" | "environment";
@@ -449,8 +450,30 @@ export const SunoEditor = () => {
   const excludeInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
+  // Mobile optimization
+  const { isMobile } = useMobileOptimization();
+  const buttonSize = isMobile ? "lg" : "sm";
+  const iconSizeCls = isMobile ? "w-6 h-6" : "w-4 h-4";
+  const lyricsAreaMinH = isMobile ? "min-h-[200px]" : "min-h-[400px]";
+  const tagsPanelMaxH = isMobile ? "max-h-[400px]" : "max-h-[600px]";
+  const styleAreaMinH = isMobile ? "min-h-[120px]" : "min-h-[100px]";
+  const tagButtonClass = `justify-start text-xs ${isMobile ? 'h-10' : 'h-8'} group`;
+
   // Статистика
-  const characterCount = lyrics.length;
+  // Счет символов без пробелов и переносов строк; учитываем графемы (эмодзи и т.п.)
+  const countGraphemesExcludingSpaces = (input: string): number => {
+    // Убираем пробелы и переводы строк (\n, \r). Табуляции не трогаем по ТЗ.
+    const noSpaces = input.replace(/[ \r\n]/g, "");
+    // Используем Intl.Segmenter, если доступен, иначе fallback на кодпоинты
+    const AnyIntl: any = Intl as any;
+    if (AnyIntl && typeof AnyIntl.Segmenter === "function") {
+      const seg = new AnyIntl.Segmenter("ru", { granularity: "grapheme" });
+      return Array.from(seg.segment(noSpaces)).length;
+    }
+    return Array.from(noSpaces).length;
+  };
+
+  const characterCount = countGraphemesExcludingSpaces(lyrics);
   const wordCount = lyrics.trim() ? lyrics.trim().split(/\s+/).length : 0;
   const lineCount = lyrics.trim() ? lyrics.split('\n').filter(line => line.trim()).length : 0;
   const tagCount = (lyrics.match(/\[.*?\]/g) || []).length;
@@ -701,7 +724,7 @@ export const SunoEditor = () => {
       <Card className="bg-gradient-secondary border-border">
         <CardHeader>
           <CardTitle className="flex items-center space-x-2">
-            <Music className="w-5 h-5 text-primary" />
+            <Music className={`${iconSizeCls} text-primary`} />
             <span>Suno Editor - Редактор для создания песен</span>
           </CardTitle>
         </CardHeader>
@@ -715,7 +738,7 @@ export const SunoEditor = () => {
       </Card>
 
       {/* Основные разделы */}
-      <div className="grid lg:grid-cols-3 gap-6">
+      <div className="grid lg:grid-cols-3 gap-4 lg:gap-6">
         {/* Левая колонка - Редактор/Превью */}
         <div className="lg:col-span-2 space-y-6">
           {/* Блок текста песни */}
@@ -723,13 +746,13 @@ export const SunoEditor = () => {
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-2">
-                  <FileText className="w-5 h-5 text-primary" />
+                  <FileText className={`${iconSizeCls} text-primary`} />
                   <h3 className="text-lg font-medium">
                     {isPreviewMode ? "Превью" : "LYRICS BLOCK"}
                   </h3>
                 </div>
 
-                <div className="flex items-center space-x-4">
+                <div className="flex flex-wrap items-center gap-2 sm:space-x-4">
                   {/* Статистика */}
                   <div className="flex items-center space-x-2 text-sm text-muted-foreground">
                     <span>{characterCount} символов</span>
@@ -763,7 +786,7 @@ export const SunoEditor = () => {
             </CardHeader>
             <CardContent>
               {isPreviewMode ? (
-                <div className="min-h-[400px] p-4 bg-background/30 rounded-md border border-border">
+                <div className={`${lyricsAreaMinH} p-4 bg-background/30 rounded-md border border-border`}>
                   {lyrics.trim() ? (
                     renderPreview()
                   ) : (
@@ -790,7 +813,7 @@ export const SunoEditor = () => {
 
 [Bridge]
 Переходная часть"
-                  className="min-h-[400px] bg-background/50 border-border font-mono text-sm"
+                  className={`${lyricsAreaMinH} bg-background/50 border-border font-mono ${isMobile ? 'text-base' : 'text-sm'}`}
                 />
               )}
             </CardContent>
@@ -800,7 +823,7 @@ export const SunoEditor = () => {
           <Card className="bg-card border-border">
             <CardHeader>
               <div className="flex items-center space-x-2">
-                <Palette className="w-5 h-5 text-accent" />
+                <Palette className={`${iconSizeCls} text-accent`} />
                 <h3 className="text-lg font-medium">STYLE DESCRIPTION</h3>
               </div>
             </CardHeader>
@@ -810,7 +833,7 @@ export const SunoEditor = () => {
                 value={styleDescription}
                 onChange={(e) => setStyleDescription(e.target.value)}
                 placeholder="Опишите желаемый стиль музыки, настроение, особенности вокала, влияние различных жанров..."
-                className="min-h-[100px] bg-background/50 border-border"
+                className={`${styleAreaMinH} bg-background/50 border-border`}
               />
 
               {/* Популярные стили */}
@@ -818,12 +841,12 @@ export const SunoEditor = () => {
                 <Label className="text-sm font-medium mb-2 block">
                   Популярные стили:
                 </Label>
-                <div className="flex flex-wrap gap-2">
+                <div className={`flex ${isMobile ? 'flex-nowrap overflow-x-auto scrollbar-hide -mx-2 px-2' : 'flex-wrap'} gap-2`}>
                   {popularStyles.map((style) => (
                     <Button
                       key={style.name}
                       variant="outline"
-                      size="sm"
+                      size={buttonSize}
                       onClick={() => addStyleToDescription(style.name)}
                       className="text-xs"
                     >
@@ -839,7 +862,7 @@ export const SunoEditor = () => {
           <Card className="bg-card border-border">
             <CardHeader>
               <div className="flex items-center space-x-2">
-                <Settings className="w-5 h-5 text-secondary-foreground" />
+                <Settings className={`${iconSizeCls} text-secondary-foreground`} />
                 <h3 className="text-lg font-medium">ADVANCED OPTIONS</h3>
               </div>
             </CardHeader>
@@ -936,7 +959,7 @@ export const SunoEditor = () => {
           <Card className="bg-card border-border">
             <CardHeader>
               <div className="flex items-center space-x-2">
-                <Zap className="w-5 h-5 text-yellow-500" />
+                <Zap className={`${iconSizeCls} text-yellow-500`} />
                 <h3 className="text-lg font-medium">MORE OPTIONS</h3>
               </div>
             </CardHeader>
@@ -977,33 +1000,33 @@ export const SunoEditor = () => {
             <CardContent className="space-y-2">
               <Button
                 variant="outline"
-                size="sm"
+                size={buttonSize}
                 onClick={copyToClipboard}
                 className="w-full justify-start"
               >
-                <Copy className="w-4 h-4 mr-2" />
+                <Copy className={`${iconSizeCls} mr-2`} />
                 Копировать текст
               </Button>
               <Button
                 variant={isPreviewMode ? "default" : "outline"}
-                size="sm"
+                size={buttonSize}
                 onClick={previewLyrics}
                 className="w-full justify-start"
               >
                 {isPreviewMode ? (
-                  <Code className="w-4 h-4 mr-2" />
+                  <Code className={`${iconSizeCls} mr-2`} />
                 ) : (
-                  <Eye className="w-4 h-4 mr-2" />
+                  <Eye className={`${iconSizeCls} mr-2`} />
                 )}
                 {isPreviewMode ? "Редактор" : "Превью SUNO"}
               </Button>
               <Button
                 variant="outline"
-                size="sm"
+                size={buttonSize}
                 onClick={exportSuno}
                 className="w-full justify-start"
               >
-                <Download className="w-4 h-4 mr-2" />
+                <Download className={`${iconSizeCls} mr-2`} />
                 Экспорт SUNO
               </Button>
 
@@ -1018,7 +1041,7 @@ export const SunoEditor = () => {
                 <div className="flex space-x-1">
                   <Button
                     variant={activeField === 'lyrics' ? "default" : "outline"}
-                    size="sm"
+                    size={buttonSize}
                     onClick={() => setActiveField('lyrics')}
                     className="text-xs px-2"
                   >
@@ -1026,7 +1049,7 @@ export const SunoEditor = () => {
                   </Button>
                   <Button
                     variant={activeField === 'style' ? "default" : "outline"}
-                    size="sm"
+                    size={buttonSize}
                     onClick={() => setActiveField('style')}
                     className="text-xs px-2"
                   >
@@ -1034,7 +1057,7 @@ export const SunoEditor = () => {
                   </Button>
                   <Button
                     variant={activeField === 'exclude' ? "default" : "outline"}
-                    size="sm"
+                    size={buttonSize}
                     onClick={() => setActiveField('exclude')}
                     className="text-xs px-2"
                   >
@@ -1053,7 +1076,7 @@ export const SunoEditor = () => {
                 </span>
               </p>
             </CardHeader>
-            <CardContent className="space-y-4 max-h-[600px] overflow-y-auto">
+            <CardContent className={`space-y-4 ${tagsPanelMaxH} overflow-y-auto`}>
               {/* Секции */}
               <div>
                 <h4 className="text-sm font-medium mb-2 text-primary">Секции</h4>
@@ -1064,8 +1087,8 @@ export const SunoEditor = () => {
                       <Button
                         key={tag.name}
                         variant="outline"
-                        size="sm"
-                        className="justify-start text-xs h-8 group"
+                        size={buttonSize}
+                        className={tagButtonClass}
                         onClick={() => insertTag(tag.name)}
                         onContextMenu={(e) => {
                           e.preventDefault();
@@ -1095,8 +1118,8 @@ export const SunoEditor = () => {
                       <Button
                         key={tag.name}
                         variant="outline"
-                        size="sm"
-                        className="justify-start text-xs h-8 group"
+                        size={buttonSize}
+                        className={tagButtonClass}
                         onClick={() => insertTag(tag.name)}
                         onContextMenu={(e) => {
                           e.preventDefault();
@@ -1126,8 +1149,8 @@ export const SunoEditor = () => {
                       <Button
                         key={tag.name}
                         variant="outline"
-                        size="sm"
-                        className="justify-start text-xs h-8 group"
+                        size={buttonSize}
+                        className={tagButtonClass}
                         onClick={() => insertTag(tag.name)}
                         onContextMenu={(e) => {
                           e.preventDefault();
@@ -1157,8 +1180,8 @@ export const SunoEditor = () => {
                       <Button
                         key={tag.name}
                         variant="outline"
-                        size="sm"
-                        className="justify-start text-xs h-8 group"
+                        size={buttonSize}
+                        className={tagButtonClass}
                         onClick={() => insertTag(tag.name)}
                         onContextMenu={(e) => {
                           e.preventDefault();
@@ -1188,8 +1211,8 @@ export const SunoEditor = () => {
                       <Button
                         key={tag.name}
                         variant="outline"
-                        size="sm"
-                        className="justify-start text-xs h-8 group"
+                        size={buttonSize}
+                        className={tagButtonClass}
                         onClick={() => insertTag(tag.name)}
                         onContextMenu={(e) => {
                           e.preventDefault();
@@ -1219,8 +1242,8 @@ export const SunoEditor = () => {
                       <Button
                         key={tag.name}
                         variant="outline"
-                        size="sm"
-                        className="justify-start text-xs h-8 group"
+                        size={buttonSize}
+                        className={tagButtonClass}
                         onClick={() => insertTag(tag.name)}
                         onContextMenu={(e) => {
                           e.preventDefault();
@@ -1250,8 +1273,8 @@ export const SunoEditor = () => {
                       <Button
                         key={tag.name}
                         variant="outline"
-                        size="sm"
-                        className="justify-start text-xs h-8 group"
+                        size={buttonSize}
+                        className={tagButtonClass}
                         onClick={() => insertTag(tag.name)}
                         onContextMenu={(e) => {
                           e.preventDefault();
@@ -1281,8 +1304,8 @@ export const SunoEditor = () => {
                       <Button
                         key={tag.name}
                         variant="outline"
-                        size="sm"
-                        className="justify-start text-xs h-8 group"
+                        size={buttonSize}
+                        className={tagButtonClass}
                         onClick={() => insertTag(tag.name)}
                         onContextMenu={(e) => {
                           e.preventDefault();
@@ -1312,8 +1335,8 @@ export const SunoEditor = () => {
                       <Button
                         key={tag.name}
                         variant="outline"
-                        size="sm"
-                        className="justify-start text-xs h-8 group"
+                        size={buttonSize}
+                        className={tagButtonClass}
                         onClick={() => insertTag(tag.name)}
                         onContextMenu={(e) => {
                           e.preventDefault();
@@ -1343,8 +1366,8 @@ export const SunoEditor = () => {
                       <Button
                         key={tag.name}
                         variant="outline"
-                        size="sm"
-                        className="justify-start text-xs h-8 group"
+                        size={buttonSize}
+                        className={tagButtonClass}
                         onClick={() => insertTag(tag.name)}
                         onContextMenu={(e) => {
                           e.preventDefault();
@@ -1374,8 +1397,8 @@ export const SunoEditor = () => {
                       <Button
                         key={tag.name}
                         variant="outline"
-                        size="sm"
-                        className="justify-start text-xs h-8 group"
+                        size={buttonSize}
+                        className={tagButtonClass}
                         onClick={() => insertTag(tag.name)}
                         onContextMenu={(e) => {
                           e.preventDefault();
@@ -1405,8 +1428,8 @@ export const SunoEditor = () => {
                       <Button
                         key={tag.name}
                         variant="outline"
-                        size="sm"
-                        className="justify-start text-xs h-8 group"
+                        size={buttonSize}
+                        className={tagButtonClass}
                         onClick={() => insertTag(tag.name)}
                         onContextMenu={(e) => {
                           e.preventDefault();
@@ -1436,8 +1459,8 @@ export const SunoEditor = () => {
                       <Button
                         key={tag.name}
                         variant="outline"
-                        size="sm"
-                        className="justify-start text-xs h-8 group"
+                        size={buttonSize}
+                        className={tagButtonClass}
                         onClick={() => insertTag(tag.name)}
                         onContextMenu={(e) => {
                           e.preventDefault();
@@ -1467,8 +1490,8 @@ export const SunoEditor = () => {
                       <Button
                         key={tag.name}
                         variant="outline"
-                        size="sm"
-                        className="justify-start text-xs h-8 group"
+                        size={buttonSize}
+                        className={tagButtonClass}
                         onClick={() => insertTag(tag.name)}
                         onContextMenu={(e) => {
                           e.preventDefault();
@@ -1498,8 +1521,8 @@ export const SunoEditor = () => {
                       <Button
                         key={tag.name}
                         variant="outline"
-                        size="sm"
-                        className="justify-start text-xs h-8 group"
+                        size={buttonSize}
+                        className={tagButtonClass}
                         onClick={() => insertTag(tag.name)}
                         onContextMenu={(e) => {
                           e.preventDefault();

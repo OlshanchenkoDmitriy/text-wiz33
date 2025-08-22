@@ -16,43 +16,31 @@ interface NavigationProps {
 }
 
 export const Navigation = ({ activeTab, onTabChange }: NavigationProps) => {
-  return (
-    <nav className="bg-card border-b border-border sticky top-0 z-50">
-      {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-border">
-        <div className="flex items-center space-x-2">
-          <div className="w-8 h-8 bg-gradient-primary rounded-lg flex items-center justify-center">
-            <span className="text-primary-foreground font-bold text-sm">
-              LS
-            </span>
-          </div>
-          <h1 className="text-lg font-bold bg-gradient-primary bg-clip-text text-transparent">
-            LinguaScribe
-          </h1>
-        </div>
-      </div>
+  const handleTabClick = (tab: string) => {
+    const el = document.activeElement as HTMLElement | null;
+    if (el && typeof el.blur === 'function') el.blur();
+    onTabChange(tab);
+  };
 
-      {/* Navigation Tabs */}
-      <div className="px-4 py-2">
-        <div className="flex space-x-1 overflow-x-auto scrollbar-hide">
+  return (
+    <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-card/90 supports-[backdrop-filter]:bg-card/60 backdrop-blur h-14 pb-[env(safe-area-inset-bottom)]">
+      <div className="h-full max-w-7xl mx-auto px-3">
+        <div className="h-full grid grid-cols-5 gap-1">
           {navItems.map((item) => {
             const Icon = item.icon;
+            const isActive = activeTab === item.id;
             return (
               <Button
                 key={item.id}
-                variant={activeTab === item.id ? "default" : "ghost"}
-                onClick={() => onTabChange(item.id)}
+                variant={isActive ? "default" : "ghost"}
+                onClick={() => handleTabClick(item.id)}
                 className={cn(
-                  "flex items-center space-x-2 whitespace-nowrap transition-all duration-200",
-                  "min-w-fit px-3 py-2 text-sm",
-                  activeTab === item.id
-                    ? "bg-primary text-primary-foreground shadow-sm"
-                    : "hover:bg-secondary text-muted-foreground"
+                  "h-full flex flex-col items-center justify-center gap-1 text-xs",
+                  isActive ? "bg-primary text-primary-foreground shadow-sm" : "hover:bg-secondary text-muted-foreground"
                 )}
               >
-                <Icon className="w-4 h-4" />
-                <span className="hidden sm:inline">{item.label}</span>
-                <span className="sm:hidden">{item.label.charAt(0)}</span>
+                <Icon className="w-5 h-5" />
+                <span>{item.label}</span>
               </Button>
             );
           })}

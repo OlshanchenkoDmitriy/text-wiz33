@@ -11,6 +11,7 @@ import { useAppContext } from "@/hooks/use-app-context";
 import { historyAPI, settingsAPI } from "@/lib/storage";
 import { useMobileOptimization } from "@/hooks/use-mobile-optimization";
 import { clipboard } from "@/lib/clipboard";
+import * as RovingFocusGroup from "@radix-ui/react-roving-focus";
 import {
   FileText,
   Copy,
@@ -903,81 +904,108 @@ export const Editor = () => {
           {editorMode === 'professional' && renderQuickActions()}
 
           {/* Панель инструментов (sticky at bottom inside content) */}
-          <div className="sticky bottom-[56px] z-20 bg-card/80 supports-[backdrop-filter]:bg-card/60 backdrop-blur flex flex-nowrap gap-2 overflow-x-auto scrollbar-hide py-2 -mx-4 px-4 border-t pb-[env(safe-area-inset-bottom)]">
-            <Button
-              variant="outline"
-              size={buttonSize}
-              onClick={undo}
-              disabled={historyIndex <= 0}
-              className="flex items-center space-x-1"
-            >
-              <Undo className={iconSizeCls} />
-              <span className="hidden sm:inline">Отменить</span>
-            </Button>
-            <Button
-              variant="outline"
-              size={buttonSize}
-              onClick={redo}
-              disabled={historyIndex >= history.length - 1}
-              className="flex items-center space-x-1"
-            >
-              <Redo className={iconSizeCls} />
-              <span className="hidden sm:inline">Повторить</span>
-            </Button>
-            <Button
-              variant="outline"
-              size={buttonSize}
-              onClick={handleCopy}
-              className="flex items-center space-x-1"
-            >
-              <Copy className={iconSizeCls} />
-              <span className="hidden sm:inline">Копировать</span>
-            </Button>
-            <Button
-              variant="outline"
-              size={buttonSize}
-              onClick={handlePaste}
-              className="flex items-center space-x-1"
-            >
-              <ClipboardPaste className={iconSizeCls} />
-              <span className="hidden sm:inline">Вставить</span>
-            </Button>
-            <Button
-              variant="outline"
-              size={buttonSize}
-              onClick={saveToHistory}
-              className="flex items-center space-x-1"
-            >
-              <Save className={iconSizeCls} />
-              <span className="hidden sm:inline">Сохранить</span>
-            </Button>
+          <RovingFocusGroup.Root
+            orientation="horizontal"
+            loop
+            role="toolbar"
+            aria-label="Основные действия редактора"
+            className="sticky bottom-[56px] z-20 bg-card/80 supports-[backdrop-filter]:bg-card/60 backdrop-blur flex flex-nowrap gap-2 overflow-x-auto scrollbar-hide py-2 -mx-4 px-4 border-t pb-[env(safe-area-inset-bottom)]"
+          >
+            <RovingFocusGroup.Item asChild>
+              <Button
+                variant="outline"
+                size={buttonSize}
+                onClick={undo}
+                disabled={historyIndex <= 0}
+                className="flex items-center space-x-1"
+                aria-label="Отменить"
+              >
+                <Undo className={iconSizeCls} />
+                <span className="hidden sm:inline">Отменить</span>
+              </Button>
+            </RovingFocusGroup.Item>
+            <RovingFocusGroup.Item asChild>
+              <Button
+                variant="outline"
+                size={buttonSize}
+                onClick={redo}
+                disabled={historyIndex >= history.length - 1}
+                className="flex items-center space-x-1"
+                aria-label="Повторить"
+              >
+                <Redo className={iconSizeCls} />
+                <span className="hidden sm:inline">Повторить</span>
+              </Button>
+            </RovingFocusGroup.Item>
+            <RovingFocusGroup.Item asChild>
+              <Button
+                variant="outline"
+                size={buttonSize}
+                onClick={handleCopy}
+                className="flex items-center space-x-1"
+                aria-label="Копировать"
+              >
+                <Copy className={iconSizeCls} />
+                <span className="hidden sm:inline">Копировать</span>
+              </Button>
+            </RovingFocusGroup.Item>
+            <RovingFocusGroup.Item asChild>
+              <Button
+                variant="outline"
+                size={buttonSize}
+                onClick={handlePaste}
+                className="flex items-center space-x-1"
+                aria-label="Вставить"
+              >
+                <ClipboardPaste className={iconSizeCls} />
+                <span className="hidden sm:inline">Вставить</span>
+              </Button>
+            </RovingFocusGroup.Item>
+            <RovingFocusGroup.Item asChild>
+              <Button
+                variant="outline"
+                size={buttonSize}
+                onClick={saveToHistory}
+                className="flex items-center space-x-1"
+                aria-label="Сохранить"
+              >
+                <Save className={iconSizeCls} />
+                <span className="hidden sm:inline">Сохранить</span>
+              </Button>
+            </RovingFocusGroup.Item>
 
             {/* Transfer buttons (visible when text exists) */}
             {text.trim() && (
               <>
-                <Button
-                  variant="outline"
-                  size={buttonSize}
-                  onClick={() => transferToNotes(text, { title: 'Из редактора' })}
-                  className="flex items-center space-x-1 text-blue-600 border-blue-200 hover:bg-blue-50"
-                >
-                  <StickyNote className={iconSizeCls} />
-                  <ArrowRight className={isMobile ? "w-5 h-5" : "w-3 h-3"} />
-                  <span className="hidden sm:inline">В заметки</span>
-                </Button>
-                <Button
-                  variant="outline"
-                  size={buttonSize}
-                  onClick={() => transferToSuno(text)}
-                  className="flex items-center space-x-1 text-purple-600 border-purple-200 hover:bg-purple-50"
-                >
-                  <Music className={iconSizeCls} />
-                  <ArrowRight className={isMobile ? "w-5 h-5" : "w-3 h-3"} />
-                  <span className="hidden sm:inline">В Suno</span>
-                </Button>
+                <RovingFocusGroup.Item asChild>
+                  <Button
+                    variant="outline"
+                    size={buttonSize}
+                    onClick={() => transferToNotes(text, { title: 'Из редактора' })}
+                    className="flex items-center space-x-1 text-blue-600 border-blue-200 hover:bg-blue-50"
+                    aria-label="В заметки"
+                  >
+                    <StickyNote className={iconSizeCls} />
+                    <ArrowRight className={isMobile ? "w-5 h-5" : "w-3 h-3"} />
+                    <span className="hidden sm:inline">В заметки</span>
+                  </Button>
+                </RovingFocusGroup.Item>
+                <RovingFocusGroup.Item asChild>
+                  <Button
+                    variant="outline"
+                    size={buttonSize}
+                    onClick={() => transferToSuno(text)}
+                    className="flex items-center space-x-1 text-purple-600 border-purple-200 hover:bg-purple-50"
+                    aria-label="В Suno"
+                  >
+                    <Music className={iconSizeCls} />
+                    <ArrowRight className={isMobile ? "w-5 h-5" : "w-3 h-3"} />
+                    <span className="hidden sm:inline">В Suno</span>
+                  </Button>
+                </RovingFocusGroup.Item>
               </>
             )}
-          </div>
+          </RovingFocusGroup.Root>
 
           {/* Текстовая область / Split view */}
           {!splitView ? (

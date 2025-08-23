@@ -73,29 +73,29 @@ export const Toolbar = ({ text, onTextChange, editorMode, setEditorMode, undo, r
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2 flex-wrap">
-        <Button variant="outline" size="sm" onClick={handleCopy}>
+        <Button variant="outline" size="sm" onClick={handleCopy} aria-label="Копировать в буфер" title="Копировать">
           <Copy className="w-4 h-4 mr-1" /> Копировать
         </Button>
-        <Button variant="outline" size="sm" onClick={handlePaste}>
+        <Button variant="outline" size="sm" onClick={handlePaste} aria-label="Вставить из буфера" title="Вставить">
           <ClipboardPaste className="w-4 h-4 mr-1" /> Вставить
         </Button>
-        <Button variant="outline" size="sm" onClick={clearText}>
+        <Button variant="outline" size="sm" onClick={clearText} aria-label="Очистить текст" title="Очистить">
           <Trash2 className="w-4 h-4 mr-1" /> Очистить
         </Button>
-        <Button variant="outline" size="sm" onClick={saveToHistory}>
+        <Button variant="outline" size="sm" onClick={saveToHistory} aria-label="Сохранить в историю" title="Сохранить">
           <Save className="w-4 h-4 mr-1" /> Сохранить
         </Button>
-        <Button variant="outline" size="sm" onClick={undo}>
+        <Button variant="outline" size="sm" onClick={undo} aria-label="Отменить" title="Отменить">
           <Undo className="w-4 h-4" />
         </Button>
-        <Button variant="outline" size="sm" onClick={redo}>
+        <Button variant="outline" size="sm" onClick={redo} aria-label="Повторить" title="Повторить">
           <Redo className="w-4 h-4" />
         </Button>
       </div>
 
       <div className="flex items-center gap-2">
         <Select value={editorMode} onValueChange={(v: EditorMode) => setEditorMode(v)}>
-          <SelectTrigger className="w-40">
+          <SelectTrigger className="w-40" aria-label="Режим редактора">
             <SelectValue placeholder="Режим" />
           </SelectTrigger>
           <SelectContent>
@@ -113,6 +113,7 @@ export const Toolbar = ({ text, onTextChange, editorMode, setEditorMode, undo, r
               setSelectedPreset("");
             }
           }}
+          aria-label="Выбрать шаблон"
           className="text-sm bg-background border border-border rounded px-2 py-1"
         >
           <option value="">Шаблон</option>
@@ -125,13 +126,13 @@ export const Toolbar = ({ text, onTextChange, editorMode, setEditorMode, undo, r
       </div>
 
       <div className="flex flex-wrap gap-2">
-        <Button variant="outline" size="sm" onClick={() => onTextChange(text.toUpperCase())}>
+        <Button variant="outline" size="sm" onClick={() => onTextChange(text.toUpperCase())} aria-label="Преобразовать в заглавный регистр" title="Заглавный">
           <Type className="w-4 h-4 mr-1" /> Заглавный
         </Button>
-        <Button variant="outline" size="sm" onClick={() => onTextChange(text.toLowerCase())}>
+        <Button variant="outline" size="sm" onClick={() => onTextChange(text.toLowerCase())} aria-label="Преобразовать в прописной регистр" title="Прописной">
           <Type className="w-4 h-4 mr-1" /> Прописной
         </Button>
-        <Button variant="outline" size="sm" onClick={() => onTextChange(text.trim())}>
+        <Button variant="outline" size="sm" onClick={() => onTextChange(text.trim())} aria-label="Удалить пробелы по краям" title="Trim">
           <Minus className="w-4 h-4 mr-1" /> Trim
         </Button>
       </div>

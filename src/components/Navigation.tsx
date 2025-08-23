@@ -23,7 +23,10 @@ export const Navigation = ({ activeTab, onTabChange }: NavigationProps) => {
   };
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-card/95 supports-[backdrop-filter]:bg-card/80 backdrop-blur-sm min-h-[60px] pb-[env(safe-area-inset-bottom)]">
+    <nav
+      className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-card/95 supports-[backdrop-filter]:bg-card/80 backdrop-blur-sm min-h-[60px] pb-[env(safe-area-inset-bottom)]"
+      aria-label="Основная навигация"
+    >
       <div className="h-full max-w-7xl mx-auto px-2 md:px-3">
         <div className="h-full grid grid-cols-5 gap-0.5 md:gap-1 py-1">
           {navItems.map((item) => {
@@ -35,6 +38,9 @@ export const Navigation = ({ activeTab, onTabChange }: NavigationProps) => {
                 variant={isActive ? "default" : "ghost"}
                 size="mobile"
                 onClick={() => handleTabClick(item.id)}
+                aria-label={item.label}
+                aria-current={isActive ? "page" : undefined}
+                title={item.label}
                 className={cn(
                   "flex flex-col items-center justify-center gap-1 text-[10px] leading-tight sm:text-xs rounded-lg min-h-[48px]",
                   isActive 

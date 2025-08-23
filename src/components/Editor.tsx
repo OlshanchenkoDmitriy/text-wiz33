@@ -1040,14 +1040,22 @@ export const Editor = () => {
       {/* Инструменты форматирования */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <Card className="bg-card border-border">
-          <CardHeader onClick={() => setShowSearch(v => !v)} className="cursor-pointer select-none">
-            <CardTitle className="text-lg flex items-center space-x-2">
-              <Search className={iconSizeCls + " text-primary"} />
-              <span>Поиск и замена</span>
-            </CardTitle>
+          <CardHeader className="select-none">
+            <button
+              type="button"
+              onClick={() => setShowSearch(v => !v)}
+              aria-expanded={showSearch}
+              aria-controls="search-panel"
+              className="w-full text-left cursor-pointer bg-transparent border-0 p-0"
+            >
+              <CardTitle className="text-lg flex items-center space-x-2">
+                <Search className={iconSizeCls + " text-primary"} />
+                <span>Поиск и замена</span>
+              </CardTitle>
+            </button>
           </CardHeader>
           {showSearch && (
-          <CardContent className="space-y-3">
+          <CardContent id="search-panel" className="space-y-3">
             <div>
               <Label htmlFor="search">Найти</Label>
               <Input
@@ -1094,14 +1102,22 @@ export const Editor = () => {
         </Card>
 
         <Card className="bg-card border-border">
-          <CardHeader onClick={() => setShowFormatting(v => !v)} className="cursor-pointer select-none">
-            <CardTitle className="text-lg flex items-center space-x-2">
-              <Type className={iconSizeCls + " text-primary"} />
-              <span>Форматирование</span>
-            </CardTitle>
+          <CardHeader className="select-none">
+            <button
+              type="button"
+              onClick={() => setShowFormatting(v => !v)}
+              aria-expanded={showFormatting}
+              aria-controls="formatting-panel"
+              className="w-full text-left cursor-pointer bg-transparent border-0 p-0"
+            >
+              <CardTitle className="text-lg flex items-center space-x-2">
+                <Type className={iconSizeCls + " text-primary"} />
+                <span>Форматирование</span>
+              </CardTitle>
+            </button>
           </CardHeader>
           {showFormatting && (
-          <CardContent className="space-y-3">
+          <CardContent id="formatting-panel" className="space-y-3">
             {/* Основные функции */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <Button
@@ -1168,14 +1184,22 @@ export const Editor = () => {
       {/* Функции списков и Markdown */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <Card className="bg-card border-border">
-          <CardHeader onClick={() => setShowLists(v => !v)} className="cursor-pointer select-none">
-            <CardTitle className="text-lg flex items-center space-x-2">
-              <ArrowRightLeft className={iconSizeCls + " text-primary"} />
-              <span>Преобразование списков</span>
-            </CardTitle>
+          <CardHeader className="select-none">
+            <button
+              type="button"
+              onClick={() => setShowLists(v => !v)}
+              aria-expanded={showLists}
+              aria-controls="lists-panel"
+              className="w-full text-left cursor-pointer bg-transparent border-0 p-0"
+            >
+              <CardTitle className="text-lg flex items-center space-x-2">
+                <ArrowRightLeft className={iconSizeCls + " text-primary"} />
+                <span>Преобразование списков</span>
+              </CardTitle>
+            </button>
           </CardHeader>
           {showLists && (
-          <CardContent className="space-y-3">
+          <CardContent id="lists-panel" className="space-y-3">
             <div>
               <Label htmlFor="separator">Разделитель</Label>
               <Input
@@ -1201,14 +1225,22 @@ export const Editor = () => {
         </Card>
 
         <Card className="bg-card border-border">
-          <CardHeader onClick={() => setShowMarkdown(v => !v)} className="cursor-pointer select-none">
-            <CardTitle className="text-lg flex items-center space-x-2">
-              <Hash className={iconSizeCls + " text-primary"} />
-              <span>Markdown</span>
-            </CardTitle>
+          <CardHeader className="select-none">
+            <button
+              type="button"
+              onClick={() => setShowMarkdown(v => !v)}
+              aria-expanded={showMarkdown}
+              aria-controls="markdown-panel"
+              className="w-full text-left cursor-pointer bg-transparent border-0 p-0"
+            >
+              <CardTitle className="text-lg flex items-center space-x-2">
+                <Hash className={iconSizeCls + " text-primary"} />
+                <span>Markdown</span>
+              </CardTitle>
+            </button>
           </CardHeader>
           {showMarkdown && (
-          <CardContent className="space-y-3">
+          <CardContent id="markdown-panel" className="space-y-3">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <Button
                 variant="outline"

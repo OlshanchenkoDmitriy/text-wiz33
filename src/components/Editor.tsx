@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { useAppContext } from "@/hooks/use-app-context";
@@ -52,6 +53,8 @@ type TextPreset = {
   template: string;
   functions: string[];
 };
+
+type Macro = { pattern: string; replacement: string; alias?: string };
 
 const textPresets: TextPreset[] = [
   {
@@ -102,6 +105,13 @@ export const Editor = () => {
   const [useRegex, setUseRegex] = useState(false);
   const [replacePreview, setReplacePreview] = useState<string>("");
   const [matchCount, setMatchCount] = useState<number>(0);
+  const [showMacroManager, setShowMacroManager] = useState(false);
+  const [macros, setMacros] = useState<Macro[]>([]);
+  const [macroAlias, setMacroAlias] = useState("");
+  const [macroPattern, setMacroPattern] = useState("");
+  const [macroReplacement, setMacroReplacement] = useState("");
+  const [macroError, setMacroError] = useState("");
+  const [importData, setImportData] = useState("");
 
   // Initialize collapsible defaults based on device
   useEffect(() => {
@@ -722,40 +732,64 @@ export const Editor = () => {
   const toDoubleStruck = () => handleTextChange(mapTransform(text, doubleStruckTable));
 
   // RegExp Macros manager (minimal)
-  type Macro = { pattern: string; replacement: string; alias?: string };
   const loadMacros = (): Macro[] => {
     try { return JSON.parse(localStorage.getItem('editor.macros') || '[]'); } catch { return []; }
   };
   const saveMacros = (list: Macro[]) => { try { localStorage.setItem('editor.macros', JSON.stringify(list)); } catch {} };
-  const runMacroManager = () => {
-    const choice = prompt('RegExp Macros: (1) Run (2) Add (3) Export (4) Import');
-    if (!choice) return;
-    const macros = loadMacros();
-    if (choice === '1') {
-      const aliases = macros.map((m, i) => `${i+1}. ${m.alias || m.pattern}`).join('\n');
-      const pick = prompt(`Выберите макрос:\n${aliases}`);
-      const idx = pick ? parseInt(pick, 10) - 1 : -1;
-      const m = macros[idx];
-      if (m) {
-        try { const re = new RegExp(m.pattern, 'g'); handleTextChange(text.replace(re, m.replacement)); }
-        catch (e: any) { toast({ title: 'Macro error', description: e?.message || 'Bad pattern', variant: 'destructive' }); }
-      }
-    } else if (choice === '2') {
-      const pattern = prompt('Pattern (RegExp, no slashes):'); if (!pattern) return;
-      const replacement = prompt('Replacement:') ?? '';
-      const alias = prompt('Alias:') ?? '';
-      const next = [...macros, { pattern, replacement, alias }];
-      saveMacros(next);
-      toast({ title: 'Сохранено', description: 'Макрос добавлен' });
-    } else if (choice === '3') {
-      const data = JSON.stringify(macros, null, 2);
-      navigator.clipboard.writeText(data);
-      toast({ title: 'Экспорт', description: 'JSON макросов скопирован в буфер' });
-    } else if (choice === '4') {
-      const data = prompt('Вставьте JSON макросов:');
-      if (!data) return;
-      try { const parsed = JSON.parse(data) as Macro[]; saveMacros(parsed); toast({ title: 'Импорт', description: 'Макросы импортированы' }); }
-      catch { toast({ title: 'Импорт', description: 'Некорректный JSON', variant: 'destructive' }); }
+  useEffect(() => {
+    setMacros(loadMacros());
+  }, []);
+
+  const applyMacro = (m: Macro) => {
+    try {
+      const re = new RegExp(m.pattern, 'g');
+      handleTextChange(text.replace(re, m.replacement));
+      setShowMacroManager(false);
+    } catch (e: any) {
+      toast({ title: 'Macro error', description: e?.message || 'Bad pattern', variant: 'destructive' });
+    }
+  };
+
+  const handleMacroSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!macroPattern.trim()) {
+      setMacroError('Pattern is required');
+      return;
+    }
+    try {
+      // validate pattern
+      new RegExp(macroPattern);
+    } catch (err: any) {
+      setMacroError(err?.message || 'Invalid pattern');
+      return;
+    }
+    const next = [...macros, { pattern: macroPattern, replacement: macroReplacement, alias: macroAlias }];
+    saveMacros(next);
+    setMacros(next);
+    setMacroAlias('');
+    setMacroPattern('');
+    setMacroReplacement('');
+    setMacroError('');
+    toast({ title: 'Сохранено', description: 'Макрос добавлен' });
+    setShowMacroManager(false);
+  };
+
+  const exportMacros = () => {
+    const data = JSON.stringify(macros, null, 2);
+    navigator.clipboard.writeText(data);
+    toast({ title: 'Экспорт', description: 'JSON макросов скопирован в буфер' });
+  };
+
+  const importMacros = () => {
+    try {
+      const parsed = JSON.parse(importData) as Macro[];
+      saveMacros(parsed);
+      setMacros(parsed);
+      setImportData('');
+      toast({ title: 'Импорт', description: 'Макросы импортированы' });
+      setShowMacroManager(false);
+    } catch {
+      toast({ title: 'Импорт', description: 'Некорректный JSON', variant: 'destructive' });
     }
   };
 
@@ -833,7 +867,7 @@ export const Editor = () => {
       if (mod && e.altKey && e.code === 'KeyL') { e.preventDefault(); insertLorem(); return; }
 
       // Macros manager
-      if (mod && e.shiftKey && e.code === 'KeyR') { e.preventDefault(); runMacroManager(); return; }
+      if (mod && e.shiftKey && e.code === 'KeyR') { e.preventDefault(); setShowMacroManager(true); return; }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
@@ -950,6 +984,15 @@ export const Editor = () => {
             >
               <Save className={iconSizeCls} />
               <span className="hidden sm:inline">Сохранить</span>
+            </Button>
+            <Button
+              variant="outline"
+              size={buttonSize}
+              onClick={() => setShowMacroManager(true)}
+              className="flex items-center space-x-1"
+            >
+              <Zap className={iconSizeCls} />
+              <span className="hidden sm:inline">Макросы</span>
             </Button>
 
             {/* Transfer buttons (visible when text exists) */}
@@ -1267,6 +1310,57 @@ export const Editor = () => {
 
       {/* Spacer to avoid overlap with bottom nav */}
       <div className="h-4" />
+      <Dialog open={showMacroManager} onOpenChange={setShowMacroManager}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Регулярные макросы</DialogTitle>
+            <DialogDescription>Управление макросами</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2 max-h-40 overflow-y-auto">
+              {macros.length ? macros.map((m, i) => (
+                <div key={i} className="flex items-center justify-between gap-2">
+                  <span className="text-sm truncate max-w-[70%]">
+                    {m.alias || m.pattern}
+                  </span>
+                  <Button type="button" variant="outline" size="sm" onClick={() => applyMacro(m)}>
+                    Выполнить
+                  </Button>
+                </div>
+              )) : (
+                <p className="text-sm text-muted-foreground">Нет сохранённых макросов</p>
+              )}
+            </div>
+            <form onSubmit={handleMacroSubmit} className="space-y-2">
+              <div>
+                <Label htmlFor="macro-alias">Псевдоним</Label>
+                <Input id="macro-alias" value={macroAlias} onChange={(e) => setMacroAlias(e.target.value)} />
+              </div>
+              <div>
+                <Label htmlFor="macro-pattern">Шаблон (RegExp)</Label>
+                <Input id="macro-pattern" value={macroPattern} onChange={(e) => setMacroPattern(e.target.value)} required />
+              </div>
+              <div>
+                <Label htmlFor="macro-replacement">Замена</Label>
+                <Input id="macro-replacement" value={macroReplacement} onChange={(e) => setMacroReplacement(e.target.value)} />
+              </div>
+              {macroError && <p className="text-sm text-destructive">{macroError}</p>}
+              <Button type="submit">Сохранить макрос</Button>
+            </form>
+            <div className="space-y-2 pt-2">
+              <div className="flex gap-2">
+                <Button type="button" variant="outline" onClick={exportMacros}>Экспорт</Button>
+                <Button type="button" variant="outline" onClick={importMacros}>Импорт</Button>
+              </div>
+              <Textarea
+                value={importData}
+                onChange={(e) => setImportData(e.target.value)}
+                placeholder="Вставьте JSON для импорта"
+              />
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

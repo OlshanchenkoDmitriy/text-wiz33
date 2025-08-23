@@ -35,10 +35,12 @@ export const Navigation = ({ activeTab, onTabChange }: NavigationProps) => {
                 variant={isActive ? "default" : "ghost"}
                 size="mobile"
                 onClick={() => handleTabClick(item.id)}
+                aria-label={item.label}
+                aria-current={isActive ? "page" : undefined}
                 className={cn(
                   "flex flex-col items-center justify-center gap-1 text-[10px] leading-tight sm:text-xs rounded-lg min-h-[48px]",
-                  isActive 
-                    ? "bg-primary text-primary-foreground shadow-sm" 
+                  isActive
+                    ? "bg-primary text-primary-foreground shadow-sm"
                     : "hover:bg-secondary/80 text-muted-foreground active:bg-secondary"
                 )}
               >
